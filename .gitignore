@@ -1,3 +1,5 @@
+out/
+src/main/main.iml
 gradlew
 .gradle
 .idea
