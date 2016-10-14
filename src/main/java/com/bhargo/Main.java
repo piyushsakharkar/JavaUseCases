@@ -2,6 +2,9 @@ package com.bhargo;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Created by barya on 10/5/2016.
@@ -17,9 +20,92 @@ public class Main {
 
         //findHighestTwoNumbers(new Integer[]{54,856,86,12,4,66,856,35});
 
-        multiThreadingPrintNumbers();
+       // multiThreadingPrintNumbers();
+        customCyclicBarrierDemo();
 
     }
+
+    static void customCyclicBarrierDemo () {
+        customCyclicBarrier barrier = new customCyclicBarrier(5, () -> {
+            System.out.println("All threads have arrived at the barrier");
+        });
+        new Thread(new customRunnable(barrier, true)).start();
+        new Thread(new customRunnable(barrier, false)).start();
+        new Thread(new customRunnable(barrier, false)).start();
+        new Thread(new customRunnable(barrier, false)).start();
+        new Thread(new customRunnable(barrier, false)).start();
+    }
+
+    static class customRunnable implements Runnable {
+
+        private customCyclicBarrier customCyclicBarrier;
+        private boolean wait;
+
+        public customRunnable(Main.customCyclicBarrier customCyclicBarrier, boolean wait) {
+            this.customCyclicBarrier = customCyclicBarrier;
+            this.wait = wait;
+        }
+
+        @Override
+        public void run() {
+            try {
+                if (wait) {
+                    Thread.sleep(5000);
+                }
+                System.out.println(Thread.currentThread().getName() + " is waiting at the barrier");
+                customCyclicBarrier.await();
+                System.out.println(Thread.currentThread().getName() + " crossed the barrier");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    static class customCyclicBarrier  {
+        private int count;
+        private Runnable postAction;
+        private Lock lock = new ReentrantLock();
+        private Condition condition = lock.newCondition();
+
+        public customCyclicBarrier(int count, Runnable postAction) {
+            this.count = count;
+            this.postAction = postAction;
+        }
+
+        public customCyclicBarrier(int count) {
+            this.count = count;
+        }
+
+        public void await() throws Exception {
+            lock.lock();
+            --count;
+            System.out.println("The count is " + count);
+            if(count < 0) {
+                throw  new Exception("barries broken");
+            }
+                try {
+                    if(count == 0) {
+                        if (postAction != null) {
+                            postAction.run();
+                        }
+                        condition.signalAll();
+                        return;
+                    }
+                    if(count > 0) {
+                        condition.await();
+                    }
+                } finally {
+                    lock.unlock();
+                }
+
+        }
+
+        private void signal () {
+            condition.signalAll();
+        }
+    }
+
+
 
     @FunctionalInterface
     private interface func<T> {
