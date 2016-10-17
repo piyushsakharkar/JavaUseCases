@@ -21,8 +21,71 @@ public class Main {
         //findHighestTwoNumbers(new Integer[]{54,856,86,12,4,66,856,35});
 
        // multiThreadingPrintNumbers();
-        customCyclicBarrierDemo();
+       // customCyclicBarrierDemo();
+        producerConsumerWaitNotify();
 
+    }
+
+    static void producerConsumerWaitNotify () {
+        Resource resource = new Resource("");
+        new userProducer(resource).start();
+        new userConsumer(resource).start();
+    }
+
+    static class userProducer  extends Thread {
+
+        private Resource resource;
+
+        userProducer(Resource resource) {
+            this.resource = resource;
+        }
+
+        @Override
+        public void run() {
+            synchronized (resource) {
+                while (true) {
+                    if(resource.isProduced()) {
+                        try {
+                            resource.wait();
+                            Thread.sleep(2000);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    System.out.println("produced by " + Thread.currentThread().getName() + new Date());
+                    resource.setProduced(true);
+                    resource.notify();
+                }
+            }
+
+        }
+    }
+
+    static class userConsumer extends Thread {
+
+        private Resource resource;
+
+        userConsumer(Resource resource) {
+            this.resource = resource;
+        }
+
+        @Override
+        public void run() {
+            synchronized (resource) {
+                while (true) {
+                    if (!resource.isProduced()) {
+                        try {
+                            resource.wait();
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    System.out.println("consumed by " + Thread.currentThread().getName() + new Date());
+                    resource.setProduced(false);
+                    resource.notify();
+                }
+            }
+        }
     }
 
     static void customCyclicBarrierDemo () {
@@ -233,13 +296,25 @@ public class Main {
     }
 
     private static class Resource {
+
+        private boolean produced;
+
         private String str;
 
         public Resource(String str) {
             this.str = str;
         }
 
+        public boolean isProduced() {
+            return produced;
+        }
+
+        public void setProduced(boolean produced) {
+            this.produced = produced;
+        }
+
         public String getStr() {
+
             return str;
         }
 
